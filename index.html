@@ -976,58 +976,65 @@ createApp({
       return { x, y, w, h };
     }
 
+    // viewBoxアニメーション用の現在値（小数）
+    let vbCurrent = { x: 0, y: 0, w: 700, h: 740 };
+    let vbTarget  = { x: 0, y: 0, w: 700, h: 740 };
+    let vbRafId   = null;
+    const ZOOM_ANIM_DURATION = 320; // ms
+
+    function applyViewBox(vb) {
+      if (!svgEl.value) return;
+      svgEl.value.setAttribute('viewBox', `${Math.round(vb.x)} ${Math.round(vb.y)} ${Math.round(vb.w)} ${Math.round(vb.h)}`);
+    }
+
+    function animateViewBox(target, instant = false) {
+      if (vbRafId) { cancelAnimationFrame(vbRafId); vbRafId = null; }
+      if (instant) {
+        vbCurrent = { ...target };
+        vbTarget  = { ...target };
+        applyViewBox(vbCurrent);
+        return;
+      }
+      vbTarget = { ...target };
+      const start = { ...vbCurrent };
+      const t0 = performance.now();
+      function step(now) {
+        const t = Math.min(1, (now - t0) / ZOOM_ANIM_DURATION);
+        const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOut
+        vbCurrent = {
+          x: start.x + (vbTarget.x - start.x) * ease,
+          y: start.y + (vbTarget.y - start.y) * ease,
+          w: start.w + (vbTarget.w - start.w) * ease,
+          h: start.h + (vbTarget.h - start.h) * ease,
+        };
+        applyViewBox(vbCurrent);
+        if (t < 1) vbRafId = requestAnimationFrame(step);
+        else vbRafId = null;
+      }
+      vbRafId = requestAnimationFrame(step);
+    }
+
+    function getTargetViewBox() {
+      if (!zoomed.value || !currentPref.value) return { x: 0, y: 0, w: 700, h: 740 };
+      const r = zoomedViewBox();
+      return { x: r.x, y: r.y, w: r.w, h: r.h };
+    }
+
     // viewBoxはSVG属性なのでwatchで直接DOMに反映（Vueの:viewBoxは小文字化されSVGに無効）
+    // パン中は即時反映、ズームボタン操作時はアニメーション
     watch(() => [zoomed.value, currentPref.value && currentPref.value.id, panX.value, panY.value, zoomScale.value], () => {
       nextTick(() => {
         if (!svgEl.value) return;
-        let vb;
-        if (!zoomed.value || !currentPref.value) {
-          vb = '0 0 700 740';
-        } else {
-          const r = zoomedViewBox();
-          vb = `${Math.round(r.x)} ${Math.round(r.y)} ${r.w} ${r.h}`;
-        }
-        svgEl.value.setAttribute('viewBox', vb);
+        const target = getTargetViewBox();
+        animateViewBox(target, isDragging.value);
       });
     });
 
-    const activePointers = new Map(); // pointerId → {x, y}
     let dragStart = null; // { px, py, panX, panY, scaleX, scaleY, moved }
-    let pinchStart = null; // { dist, zoomScale, panX, panY, midSvgX, midSvgY }
-
-    function getPinchDist() {
-      const pts = [...activePointers.values()];
-      return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
-    }
-    function getPinchMidClient() {
-      const pts = [...activePointers.values()];
-      return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-    }
 
     function onPanStart(e) {
-      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (svgEl.value) svgEl.value.setPointerCapture(e.pointerId);
-
-      if (activePointers.size === 2) {
-        // Switch to pinch mode
-        dragStart = null;
-        const r = zoomedViewBox();
-        const rect = svgEl.value.getBoundingClientRect();
-        const mid = getPinchMidClient();
-        // mid point in SVG coordinates
-        const midSvgX = r.x + (mid.x - rect.left) * r.w / rect.width;
-        const midSvgY = r.y + (mid.y - rect.top)  * r.h / rect.height;
-        pinchStart = {
-          dist: getPinchDist(),
-          zoomScale: zoomScale.value,
-          panX: panX.value,
-          panY: panY.value,
-          midSvgX, midSvgY,
-        };
-        return;
-      }
-
       if (!zoomed.value || !svgEl.value) return;
+      if (svgEl.value) svgEl.value.setPointerCapture(e.pointerId);
       const rect = svgEl.value.getBoundingClientRect();
       const r = zoomedViewBox();
       dragStart = {
@@ -1039,25 +1046,6 @@ createApp({
       };
     }
     function onPanMove(e) {
-      if (!activePointers.has(e.pointerId)) return;
-      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-      if (activePointers.size === 2 && pinchStart) {
-        const newDist = getPinchDist();
-        const rawScale = pinchStart.zoomScale * (newDist / pinchStart.dist);
-        zoomScale.value = Math.max(1, Math.min(6, rawScale));
-        // Keep pinch midpoint fixed in SVG space
-        const r = zoomedViewBox();
-        const rect = svgEl.value.getBoundingClientRect();
-        const mid = getPinchMidClient();
-        const midSvgX = r.x + (mid.x - rect.left) * r.w / rect.width;
-        const midSvgY = r.y + (mid.y - rect.top)  * r.h / rect.height;
-        panX.value = pinchStart.panX + (midSvgX - pinchStart.midSvgX);
-        panY.value = pinchStart.panY + (midSvgY - pinchStart.midSvgY);
-        if (!zoomed.value) zoomed.value = true;
-        return;
-      }
-
       if (!dragStart) return;
       const dx = e.clientX - dragStart.px;
       const dy = e.clientY - dragStart.py;
@@ -1074,12 +1062,8 @@ createApp({
       if (svgEl.value && svgEl.value.hasPointerCapture(e.pointerId)) {
         svgEl.value.releasePointerCapture(e.pointerId);
       }
-      activePointers.delete(e.pointerId);
-      if (activePointers.size < 2) pinchStart = null;
-      if (activePointers.size === 0) {
-        dragStart = null;
-        isDragging.value = false;
-      }
+      dragStart = null;
+      isDragging.value = false;
     }
     function resetPan() { panX.value = 0; panY.value = 0; }
 
@@ -1192,6 +1176,7 @@ createApp({
       panY.value = 0;
       zoomScale.value = 1;
       flashClass.value = '';
+      animateViewBox({ x: 0, y: 0, w: 700, h: 740 }, true);
       nextTick(() => {
         if (quizMode.value === 'input' && inputEl.value) inputEl.value.focus();
       });
