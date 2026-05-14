@@ -652,37 +652,39 @@ const PREFECTURES = [
 
 
 
+function b64d(s) { return new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0))); }
+
 const LEVELS = [
-  { lv:1,  title:'地図のはじめて'        },
-  { lv:2,  title:'地図のみならい'        },
-  { lv:3,  title:'さんぽずき'           },
-  { lv:4,  title:'たびずき'             },
-  { lv:5,  title:'地理ずき'             },
-  { lv:6,  title:'地図よみ'             },
-  { lv:7,  title:'たびびと'             },
-  { lv:8,  title:'スーパーたびびと'      },
-  { lv:9,  title:'地名あつめマン'        },
-  { lv:10, title:'空もとべるはず'        },
-  { lv:11, title:'ヤッホー地図ぴょーん'  },
-  { lv:12, title:'地図のチーズ'         },
-  { lv:13, title:'日本戦隊ケンメイジャー' },
-  { lv:14, title:'地理先生(ちょっとえらい)' },
-  { lv:15, title:'おれは都道府県'        },
-  { lv:16, title:'地名のはかせ(えらい)'  },
-  { lv:17, title:'地図ライダーゼッツ'    },
-  { lv:18, title:'メタモン地図モン'      },
-  { lv:19, title:'転生したら地図だった件' },
-  { lv:20, title:'都道府県スライム'      },
-  { lv:21, title:'地図のギャバン'        },
-  { lv:22, title:'地図のギャバン(アリ)'  },
-  { lv:23, title:'もう全部覚えただろ？'  },
-  { lv:24, title:'地名探偵プリキュア'    },
-  { lv:25, title:'地理のおに(こわい)'    },
-  { lv:26, title:'そうりだいじん'        },
-  { lv:27, title:'トランプ'             },
-  { lv:28, title:'ブリティッシュ 地図オフ' },
-  { lv:29, title:'神様(とてもえらい)'    },
-  { lv:30, title:'もう何も、こわくない マミった' },
+  { lv:1,  title:'5Zyw5Zuz44Gu44Gv44GY44KB44Gm' },
+  { lv:2,  title:'5Zyw5Zuz44Gu44G/44Gq44KJ44GE' },
+  { lv:3,  title:'44GV44KT44G944Ga44GN' },
+  { lv:4,  title:'44Gf44Gz44Ga44GN' },
+  { lv:5,  title:'5Zyw55CG44Ga44GN' },
+  { lv:6,  title:'5Zyw5Zuz44KI44G/' },
+  { lv:7,  title:'44Gf44Gz44Gz44Go' },
+  { lv:8,  title:'44K544O844OR44O844Gf44Gz44Gz44Go' },
+  { lv:9,  title:'5Zyw5ZCN44GC44Gk44KB44Oe44Oz' },
+  { lv:10, title:'56m644KC44Go44G544KL44Gv44Ga' },
+  { lv:11, title:'44Ok44OD44Ob44O85Zyw5Zuz44G044KH44O844KT' },
+  { lv:12, title:'5Zyw5Zuz44Gu44OB44O844K6' },
+  { lv:13, title:'5pel5pys5oim6ZqK44Kx44Oz44Oh44Kk44K444Oj44O8' },
+  { lv:14, title:'5Zyw55CG5YWI55SfKOOBoeOCh+OBo+OBqOOBiOOCieOBhCk=' },
+  { lv:15, title:'44GK44KM44Gv6YO96YGT5bqc55yM' },
+  { lv:16, title:'5Zyw5ZCN44Gu44Gv44GL44GbKOOBiOOCieOBhCk=' },
+  { lv:17, title:'5Zyw5Zuz44Op44Kk44OA44O844K844OD44OE' },
+  { lv:18, title:'44Oh44K/44Oi44Oz5Zyw5Zuz44Oi44Oz' },
+  { lv:19, title:'6Lui55Sf44GX44Gf44KJ5Zyw5Zuz44Gg44Gj44Gf5Lu2' },
+  { lv:20, title:'6YO96YGT5bqc55yM44K544Op44Kk44Og' },
+  { lv:21, title:'5Zyw5Zuz44Gu44Ku44Oj44OQ44Oz' },
+  { lv:22, title:'5Zyw5Zuz44Gu44Ku44Oj44OQ44OzKOOCouODqik=' },
+  { lv:23, title:'44KC44GG5YWo6YOo6Kaa44GI44Gf44Gg44KN77yf' },
+  { lv:24, title:'5Zyw5ZCN5o6i5YG144OX44Oq44Kt44Ol44Ki' },
+  { lv:25, title:'5Zyw55CG44Gu44GK44GrKOOBk+OCj+OBhCk=' },
+  { lv:26, title:'44Gd44GG44KK44Gg44GE44GY44KT' },
+  { lv:27, title:'44OI44Op44Oz44OX' },
+  { lv:28, title:'44OW44Oq44OG44Kj44OD44K344OlIOWcsOWbs+OCquODlQ==' },
+  { lv:29, title:'56We5qeYKOOBqOOBpuOCguOBiOOCieOBhCk=' },
+  { lv:30, title:'44KC44GG5L2V44KC44CB44GT44KP44GP44Gq44GEIOODnuODn+OBo+OBnw==' },
 ];
 
 const REGION_MAP = {
@@ -927,7 +929,7 @@ createApp({
       const used = profile.xp + previewXp.value - (profile.xpBase || 0);
       return Math.min(100, used / XP_THRESHOLD * 100);
     });
-    const currentLevelTitle = computed(() => (LEVELS[profile.level - 1] || LEVELS[0]).title);
+    const currentLevelTitle = computed(() => b64d((LEVELS[profile.level - 1] || LEVELS[0]).title));
 
     watch(xpPercent, (nv, ov) => {
       if (nv >= 100 && ov < 100 && !xpBarFull.value) xpBarFull.value = true;
@@ -965,7 +967,7 @@ createApp({
     const showLevelList = ref(false);
 
     function isLocked(lv) { return lv.lv >= 11 && lv.lv > profile.level; }
-    function displayTitle(lv) { return isLocked(lv) ? '???' : lv.title; }
+    function displayTitle(lv) { return isLocked(lv) ? '???' : b64d(lv.title); }
     function rowMark(lv) {
       if (lv.lv === profile.level) return '★';
       if (lv.lv < profile.level)  return '✓';
@@ -1308,7 +1310,7 @@ createApp({
       if (levels > 0) {
         const queue = [];
         for (let i = prevLv + 1; i <= profile.level; i++) {
-          queue.push({ lv: i, title: (LEVELS[i - 1] || LEVELS[29]).title });
+          queue.push({ lv: i, title: b64d((LEVELS[i - 1] || LEVELS[29]).title) });
         }
         levelupQueue.value = queue;
       }
