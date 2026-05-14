@@ -282,8 +282,14 @@
     transition: all 0.15s;
     display: flex; align-items: center; justify-content: center;
     min-height: 50px; position: relative;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .choice-btn:hover:not(:disabled) { border-color: #1a56db; background: #f0f5ff; }
+  .choice-btn:focus { outline: none; }
+  .choice-btn:focus:not(:focus-visible) { border-color: #cbd5e1; background: #fff; }
+  @media (hover: hover) {
+    .choice-btn:hover:not(:disabled) { border-color: #1a56db; background: #f0f5ff; }
+  }
   .choice-btn:disabled { cursor: default; }
   .choice-btn.picked-correct { background: #22c55e; color: #fff; border-color: #16a34a; }
   .choice-btn.picked-wrong   { background: #ef4444; color: #fff; border-color: #dc2626; }
