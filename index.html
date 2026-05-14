@@ -574,7 +574,7 @@
     <div v-else class="choices-grid">
       <button
         v-for="c in choices"
-        :key="c.id"
+        :key="sessionAnswered + '-' + c.id"
         :class="['choice-btn', choiceClass(c)]"
         :disabled="phase !== 'question'"
         @click="pickChoice(c)"
