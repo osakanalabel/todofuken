@@ -57,7 +57,9 @@
   .zoom-btn-wrap {
     position: absolute; bottom: 8px; right: 8px;
     display: flex; flex-direction: column; gap: 4px;
+    transition: bottom 0.25s ease-out;
   }
+  .map-wrap.banner-visible .zoom-btn-wrap { bottom: 124px; }
   .zoom-btn {
     width: 36px; height: 36px; border-radius: 8px;
     background: rgba(255,255,255,0.9); border: 1px solid #d1d5db;
@@ -66,6 +68,15 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
   .zoom-btn:hover { background: #fff; }
+  .hint-btn {
+    flex-shrink: 0;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #fff; border: 2px solid #1a56db;
+    color: #1a56db; font-size: 0.9rem; font-weight: 900; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1); transition: opacity 0.15s;
+  }
+  .hint-btn:disabled { opacity: 0.3; cursor: default; border-color: #9ca3af; color: #9ca3af; }
   .zoom-btn:disabled { opacity: 0.35; cursor: default; }
   .map-wrap.zoomed svg { cursor: grab; touch-action: none; }
   .map-wrap.zoomed.dragging svg { cursor: grabbing; }
@@ -116,10 +127,70 @@
     animation: feedbackPop 0.18s ease-out;
   }
   .feedback.correct { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-  .feedback.wrong   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
   @keyframes feedbackPop {
     from { opacity: 0; transform: translateX(-50%) translateY(6px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ========= 誤答演出 ========= */
+  .wrong-flash-overlay {
+    position: absolute; inset: 0; z-index: 25;
+    background: #ef4444; pointer-events: none;
+    animation: wrongFlashFade 0.38s ease-out both;
+  }
+  @keyframes wrongFlashFade {
+    0%   { opacity: 0.75; }
+    100% { opacity: 0; }
+  }
+  .wrong-stamp {
+    position: absolute; top: 42%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.8rem; font-weight: 900; color: #fff;
+    text-shadow: 0 0 28px rgba(220,38,38,1), 0 3px 14px rgba(0,0,0,0.5);
+    z-index: 30; pointer-events: none; white-space: nowrap;
+    animation: wrongStampIn 0.42s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes wrongStampIn {
+    0%   { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
+    55%  { transform: translate(-50%,-50%) scale(0.9); opacity: 1; }
+    75%  { transform: translate(-50%,-50%) scale(1.06); }
+    100% { transform: translate(-50%,-50%) scale(1.0); }
+  }
+  @keyframes wrongStampOut {
+    from { opacity: 1; transform: translate(-50%,-50%) scale(1.0); }
+    to   { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
+  }
+  .wrong-particle {
+    position: absolute; font-weight: 900; color: #ef4444;
+    pointer-events: none; white-space: nowrap; z-index: 15;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    animation: wrongParticleFly var(--dur) ease-out both;
+  }
+  @keyframes wrongParticleFly {
+    0%   { opacity: 0;   transform: translate(0,0)               scale(0.5) rotate(var(--rot)); }
+    18%  { opacity: 0.9; transform: translate(0,-8px)             scale(1.0) rotate(var(--rot)); }
+    75%  { opacity: 0.6; }
+    100% { opacity: 0;   transform: translate(var(--tx),var(--ty)) scale(0.7) rotate(var(--rot)); }
+  }
+  .wrong-banner {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: rgba(153, 27, 27, 0.95); color: #fff;
+    padding: 8px 16px 12px; text-align: center;
+    pointer-events: auto; cursor: pointer;
+    animation: wrongBannerIn 0.22s cubic-bezier(0.2,1,0.5,1) both;
+  }
+  @keyframes wrongBannerIn {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .wrong-banner .wb-label  { font-size: 0.62rem; font-weight: 600; opacity: 0.85; letter-spacing: 0.1em; margin-bottom: 2px; }
+  .wrong-banner .wb-name   { font-size: 1.55rem; font-weight: 900; letter-spacing: 0.06em; line-height: 1.1; margin-bottom: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .wrong-banner .wb-yomi   { font-size: 0.85rem; font-weight: 500; opacity: 0.9; }
+  .wrong-banner .wb-region { font-size: 0.62rem; font-weight: 600; opacity: 0.75; margin-top: 3px; letter-spacing: 0.12em; }
+  .wrong-banner .wb-hint   { font-size: 0.72rem; font-weight: 700; opacity: 1; margin-top: 5px; letter-spacing: 0.04em; animation: wbHintPulse 1.2s ease-in-out infinite; }
+  @keyframes wbHintPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
   }
 
   .btn-next {
@@ -215,6 +286,21 @@
     15%  { opacity: 1; }
     80%  { opacity: 1; transform: translateY(-60px); }
     100% { opacity: 0; transform: translateY(-80px); }
+  }
+
+  /* ========= hint notice (map-wrap内) ========= */
+  .hint-notice {
+    position: absolute; left: 50%; bottom: 10px;
+    transform: translateX(-50%);
+    font-size: 0.7rem; font-weight: 700; color: #ef4444;
+    white-space: nowrap; pointer-events: none; z-index: 22;
+    animation: hintNoticeFade 2s ease-out forwards;
+  }
+  @keyframes hintNoticeFade {
+    0%   { opacity: 0; }
+    12%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
   }
 
   /* ========= xpcalc modal ========= */
@@ -478,7 +564,7 @@
   </div>
 
   <!-- Map -->
-  <div class="map-wrap" :class="{ zoomed: zoomed, dragging: isDragging }">
+  <div class="map-wrap" :class="{ zoomed: zoomed, dragging: isDragging, 'banner-visible': wrongBanner && phase === 'result' && !isCorrect }" ref="mapWrapEl">
     <svg viewBox="0 0 700 740" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" ref="svgEl"
          @pointerdown="onPanStart" @pointermove="onPanMove" @pointerup="onPanEnd" @pointercancel="onPanEnd">
       <defs>
@@ -534,10 +620,25 @@
       <button class="zoom-btn" @click="zoomIn"  :disabled="zoomed"  title="ズームイン">＋</button>
       <button class="zoom-btn" @click="zoomOut" :disabled="!zoomed" title="ズーム解除">－</button>
     </div>
-    <div v-if="phase === 'result'" :class="['feedback', isCorrect ? 'correct' : 'wrong']">
-      <span v-if="isCorrect && isShort">⭕ 正解！ <strong>{{ currentPref.name }}</strong><br><small>※「都道府県」までこたえましょう</small></span>
-      <span v-else-if="isCorrect">⭕ 正解！ <strong>{{ currentPref.name }}</strong></span>
-      <span v-else>❌ 正解は <strong>{{ currentPref.name }}</strong>（{{ currentPref.yomi }}）</span>
+    <!-- 正解フィードバック -->
+    <div v-if="phase === 'result' && isCorrect" class="feedback correct">
+      <span v-if="isShort">⭕ 正解！ <strong>{{ currentPref.name }}</strong><br><small>※「都道府県」までこたえましょう</small></span>
+      <span v-else>⭕ 正解！ <strong>{{ currentPref.name }}</strong></span>
+    </div>
+    <!-- 誤答演出: 赤フラッシュ -->
+    <div v-if="wrongFlash" class="wrong-flash-overlay"></div>
+    <!-- 誤答演出: 中央スタンプ -->
+    <div v-if="wrongStamp" class="wrong-stamp">{{ currentPref.name }}</div>
+    <!-- 誤答演出: パーティクルコンテナ -->
+    <div ref="ptclEl" style="position:absolute;inset:0;pointer-events:none;z-index:15;overflow:hidden;"></div>
+    <!-- 誤答バナー（タップで次問） -->
+    <div v-if="phase === 'result' && !isCorrect && wrongBanner" class="wrong-banner"
+         @click="nextQuestion" @touchstart.prevent="nextQuestion">
+      <div class="wb-label">❌ 正解は…</div>
+      <div class="wb-name">{{ currentPref.name }}</div>
+      <div class="wb-yomi">{{ currentPref.yomi }}</div>
+      <div class="wb-region">{{ wrongRegion }}</div>
+      <div class="wb-hint">▼ タップして次へ ▼</div>
     </div>
   </div>
 
@@ -552,6 +653,8 @@
 
     <div class="mode-row">
       <span class="mode-label">この県はどこ？</span>
+      <button v-if="phase === 'question' && quizMode === 'choice'"
+              class="hint-btn" :disabled="hintCount >= 2" @click="useHint" title="選択肢を減らす">？</button>
       <div class="mode-switch">
         <button :class="['mode-btn', { active: quizMode === 'input' }]" @click="setMode('input')">入力</button>
         <button :class="['mode-btn', { active: quizMode === 'choice' }]" @click="setMode('choice')">4択</button>
@@ -579,7 +682,7 @@
 
     <div v-else class="choices-grid">
       <button
-        v-for="c in choices"
+        v-for="c in visibleChoices"
         :key="sessionAnswered + '-' + c.id"
         :class="['choice-btn', choiceClass(c)]"
         :disabled="phase !== 'question'"
@@ -669,7 +772,7 @@ const LEVELS = [
   { lv:12, title:'5Zyw5Zuz44Gu44OB44O844K6' },
   { lv:13, title:'5pel5pys5oim6ZqK44Kx44Oz44Oh44Kk44K444Oj44O8' },
   { lv:14, title:'5Zyw55CG5YWI55SfKOOBoeOCh+OBo+OBqOOBiOOCieOBhCk=' },
-  { lv:15, title:'44GK44KM44Gv6YO96YGT5bqc55yM' },
+  { lv:15, title:'44GK44KM44GM6YO96YGT5bqc55yM' },
   { lv:16, title:'5Zyw5ZCN44Gu44Gv44GL44GbKOOBiOOCieOBhCk=' },
   { lv:17, title:'5Zyw5Zuz44Op44Kk44OA44O844K844OD44OE' },
   { lv:18, title:'44Oh44K/44Oi44Oz5Zyw5Zuz44Oi44Oz' },
@@ -953,10 +1056,11 @@ createApp({
     const sessionQueue    = ref([]); // 10問のpref id配列
     const sessionDoneIds  = ref(new Set());
     const sessionAnswered = ref(0);
-    const sessionCorrect  = ref(0);
-    const sessionResults  = ref([]);
-    const comboCount      = ref(0);
-    const sessionComboBonus = ref(0);
+    const sessionCorrect       = ref(0);
+    const sessionResults       = ref([]);
+    const comboCount           = ref(0);
+    const sessionComboBonus    = ref(0);
+    const sessionXpFromCorrect = ref(0); // ヒント減算済みの正解XP累計
 
     const titleVisible = ref(true);
     const titleFading  = ref(false);
@@ -965,6 +1069,9 @@ createApp({
 
     const zoomed        = ref(false);
     const showLevelList = ref(false);
+    // 誤答演出用（zoomedViewBox/watch から参照されるためここで先行宣言）
+    const wrongBanner = ref(false);
+    const mapWrapEl   = ref(null);
 
     function isLocked(lv) { return lv.lv >= 11 && lv.lv > profile.level; }
     function displayTitle(lv) { return isLocked(lv) ? '???' : b64d(lv.title); }
@@ -997,11 +1104,23 @@ createApp({
 
     function zoomedViewBox() {
       const pos = CAPITAL_POS[currentPref.value.id] || [350, 370];
-      const baseW = 250;
+      const baseW = wrongBanner.value ? 280 : 250;
       const w = Math.round(baseW / zoomScale.value);
       const h = Math.round(w * 740 / 700);
+      // バナー表示中: SVG表示中央ではなく「バナー上の可視中央」に県を置く
+      // preserveAspectRatio="xMidYMid meet" のため map-wrap CSS高さでSVG単位/pxの比率を求める
+      let yShift = 0;
+      if (wrongBanner.value && mapWrapEl.value) {
+        const mapW = mapWrapEl.value.offsetWidth || 375;
+        const mapH = mapWrapEl.value.offsetHeight || 375;
+        const bannerH = 110; // 縮小後のバナー高さ概算
+        // meet: viewBoxがSVG要素にフィットする縮尺
+        const scale = Math.min(mapW / w, mapH / h);
+        // 可視中央はSVG要素中央から bannerH/2 px 上 → SVG単位換算
+        yShift = (bannerH / 2) / scale;
+      }
       const baseX = pos[0] - w / 2;
-      const baseY = pos[1] - h / 2;
+      const baseY = pos[1] - h / 2 + yShift; // 県を「可視中央」に置く: viewBox.yを下にずらす
       const x = Math.max(0, Math.min(700 - w, baseX + panX.value));
       const y = Math.max(0, Math.min(740 - h, baseY + panY.value));
       return { x, y, w, h };
@@ -1018,7 +1137,7 @@ createApp({
       svgEl.value.setAttribute('viewBox', `${Math.round(vb.x)} ${Math.round(vb.y)} ${Math.round(vb.w)} ${Math.round(vb.h)}`);
     }
 
-    function animateViewBox(target, instant = false) {
+    function animateViewBox(target, instant = false, duration = ZOOM_ANIM_DURATION) {
       if (vbRafId) { cancelAnimationFrame(vbRafId); vbRafId = null; }
       if (instant) {
         vbCurrent = { ...target };
@@ -1030,7 +1149,7 @@ createApp({
       const start = { ...vbCurrent };
       const t0 = performance.now();
       function step(now) {
-        const t = Math.min(1, (now - t0) / ZOOM_ANIM_DURATION);
+        const t = Math.min(1, (now - t0) / duration);
         const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOut
         vbCurrent = {
           x: start.x + (vbTarget.x - start.x) * ease,
@@ -1053,11 +1172,12 @@ createApp({
 
     // viewBoxはSVG属性なのでwatchで直接DOMに反映（Vueの:viewBoxは小文字化されSVGに無効）
     // パン中は即時反映、ズームボタン操作時はアニメーション
-    watch(() => [zoomed.value, currentPref.value && currentPref.value.id, panX.value, panY.value, zoomScale.value], () => {
+    watch(() => [zoomed.value, currentPref.value && currentPref.value.id, panX.value, panY.value, zoomScale.value, wrongBanner.value], () => {
       nextTick(() => {
         if (!svgEl.value) return;
         const target = getTargetViewBox();
-        animateViewBox(target, isDragging.value);
+        const duration = wrongBanner.value ? 1500 : ZOOM_ANIM_DURATION;
+        animateViewBox(target, isDragging.value, duration);
       });
     });
 
@@ -1206,14 +1326,34 @@ createApp({
       panX.value = 0;
       panY.value = 0;
       zoomScale.value = 1;
-      flashClass.value = '';
+      flashClass.value  = '';
+      wrongFlash.value  = false;
+      wrongStamp.value  = false;
+      wrongBanner.value = false;
+      hintCount.value   = 0;
+      ptclTimers.forEach(clearTimeout); ptclTimers = [];
+      if (ptclEl.value) ptclEl.value.innerHTML = '';
       animateViewBox({ x: 0, y: 0, w: 700, h: 740 }, true);
       nextTick(() => {
         if (quizMode.value === 'input' && inputEl.value) inputEl.value.focus();
       });
     }
 
-    function recordAnswer(prefId, correct) {
+    async function saveSession() {
+      await dbPut('session', {
+        queue:      [...sessionQueue.value],
+        results:    [...sessionResults.value],
+        doneIds:    [...sessionDoneIds.value],
+        correct:    sessionCorrect.value,
+        answered:   sessionAnswered.value,
+        comboCount: comboCount.value,
+        comboBonus: sessionComboBonus.value,
+        previewXp:  previewXp.value,
+        currentId:  currentPref.value?.id ?? null,
+      });
+    }
+
+    function recordAnswer(prefId, correct, hints = 0) {
       const st = profile.perPrefStats[prefId] || { asked: 0, wrong: 0, lastSeenTurn: 0 };
       st.asked++;
       if (!correct) st.wrong++;
@@ -1226,8 +1366,12 @@ createApp({
       if (correct) {
         sessionCorrect.value++;
         comboCount.value++;
-        spawnXpFloat('+' + XP_CORRECT, '#F59E0B', '30px');
-        previewXp.value += XP_CORRECT;
+        // ヒント数に応じたXP: 4択=5, 3択=3, 2択=2（入力モードはhints=0なので常に5）
+        const xpTable = [5, 3, 2];
+        const xpEarned = xpTable[Math.min(hints, 2)];
+        sessionXpFromCorrect.value += xpEarned;
+        spawnXpFloat('+' + xpEarned, '#F59E0B', '30px');
+        previewXp.value += xpEarned;
         if (comboCount.value >= 5) {
           const cb = XP_COMBO_STEP * Math.min(comboCount.value - 4, 6);
           sessionComboBonus.value += cb;
@@ -1237,6 +1381,7 @@ createApp({
       } else {
         comboCount.value = 0;
       }
+      saveSession();
     }
 
     function pickChoice(pref) {
@@ -1249,9 +1394,12 @@ createApp({
       flashClass.value = correct ? 'correct-flash' : 'wrong-flash';
       setTimeout(() => { flashClass.value = ''; }, 700);
       playSound(correct ? GOOD_SOUND : BAD_SOUND);
-      recordAnswer(currentPref.value.id, correct);
-      const delay = correct ? 900 : 1800;
-      setTimeout(() => { if (phase.value === 'result') nextQuestion(); }, delay);
+      recordAnswer(currentPref.value.id, correct, hintCount.value);
+      if (correct) {
+        setTimeout(() => { if (phase.value === 'result') nextQuestion(); }, 900);
+      } else {
+        triggerWrongEffect(currentPref.value.name, currentPref.value.yomi);
+      }
     }
 
     function choiceClass(pref) {
@@ -1287,17 +1435,20 @@ createApp({
       flashClass.value = correct ? 'correct-flash' : 'wrong-flash';
       setTimeout(() => { flashClass.value = ''; }, 700);
       playSound(correct ? GOOD_SOUND : BAD_SOUND);
-      recordAnswer(currentPref.value.id, correct);
-      const delay = correct ? (shortHit ? 1800 : 900) : 1800;
-      setTimeout(() => { if (phase.value === 'result') nextQuestion(); }, delay);
+      recordAnswer(currentPref.value.id, correct, hintCount.value);
+      if (correct) {
+        setTimeout(() => { if (phase.value === 'result') nextQuestion(); }, shortHit ? 1800 : 900);
+      } else {
+        triggerWrongEffect(currentPref.value.name, currentPref.value.yomi);
+      }
     }
 
     function finishSession() {
       const perfect = sessionCorrect.value === SESSION_SIZE ? XP_PERFECT : 0;
-      const total   = sessionCorrect.value * XP_CORRECT + sessionComboBonus.value + perfect;
+      const total   = sessionXpFromCorrect.value + sessionComboBonus.value + perfect;
       xpBreakdown.value = {
         correctCount: sessionCorrect.value,
-        correct: sessionCorrect.value * XP_CORRECT,
+        correct: sessionXpFromCorrect.value,
         perfect,
         combo: sessionComboBonus.value,
         total,
@@ -1315,6 +1466,7 @@ createApp({
         levelupQueue.value = queue;
       }
       saveProfile();
+      dbPut('session', null); // セッション完了: 保存データを消す
       showXpCalc.value = true;
       playSound(RESULT_SOUND);
     }
@@ -1335,8 +1487,10 @@ createApp({
       sessionCorrect.value    = 0;
       sessionResults.value    = [];
       comboCount.value        = 0;
-      sessionComboBonus.value = 0;
-      leveledUp.value         = false;
+      sessionComboBonus.value    = 0;
+      sessionXpFromCorrect.value = 0;
+      hintUsedCount.value        = 0;
+      leveledUp.value            = false;
       levelupQueue.value      = [];
       phase.value             = 'question';
       flashClass.value        = '';
@@ -1368,11 +1522,144 @@ createApp({
         if (!profile.globalTurn)  profile.globalTurn = 0;
         if (!profile.xpBase && profile.xpBase !== 0) profile.xpBase = (profile.level - 1) * XP_THRESHOLD;
       }
-      startNewSession();
+      // セッションのレジューム
+      let resumed = false;
+      try {
+        const savedSess = await dbGet('session');
+        if (savedSess &&
+            savedSess.results && savedSess.results.length > 0 &&
+            savedSess.results.length < 10 &&
+            savedSess.currentId) {
+          sessionQueue.value      = savedSess.queue      ?? [];
+          sessionResults.value    = savedSess.results;
+          sessionDoneIds.value    = new Set(savedSess.doneIds ?? []);
+          sessionCorrect.value    = savedSess.correct    ?? 0;
+          sessionAnswered.value   = savedSess.answered   ?? savedSess.results.length;
+          comboCount.value        = savedSess.comboCount ?? 0;
+          sessionComboBonus.value = savedSess.comboBonus ?? 0;
+          previewXp.value         = savedSess.previewXp  ?? 0;
+          const pref = PREFECTURES.find(p => p.id === savedSess.currentId);
+          if (pref) {
+            currentPref.value = pref;
+            choices.value     = buildChoices(pref.id);
+            phase.value       = 'question';
+            resumed = true;
+          }
+        }
+      } catch (_) {}
+      if (!resumed) startNewSession();
     });
 
     const mainlandPrefs = computed(() => PREFECTURES.filter(p => p.id !== 'JP.3302'));
     const okinawaPrefs  = computed(() => PREFECTURES.filter(p => p.id === 'JP.3302'));
+
+    // 誤答演出用（wrongBanner/mapWrapEl は上で先行宣言済み）
+    const wrongFlash  = ref(false);
+    const wrongStamp  = ref(false);
+    const ptclEl      = ref(null);
+    let   ptclTimers  = [];
+
+    const wrongRegion = computed(() =>
+      (!currentPref.value || isCorrect.value) ? '' : (REGION_MAP[currentPref.value.id] || '')
+    );
+
+    // ヒントボタン（4択→3択→2択）
+    const hintCount     = ref(0);
+    const hintUsedCount = ref(0); // セッション通算ヒント使用回数（XPペナルティ用）
+    const HINT_PENALTY  = 2;      // 1回あたりのペナルティXP
+
+    const visibleChoices = computed(() => {
+      if (hintCount.value === 0 || !currentPref.value) return choices.value;
+      const correctId = currentPref.value.id;
+      const removable = choices.value
+        .map((c, i) => ({ c, i }))
+        .filter(({ c }) => c.id !== correctId);
+      const removeIndices = new Set(
+        removable.slice(removable.length - hintCount.value).map(({ i }) => i)
+      );
+      return choices.value.filter((_, i) => !removeIndices.has(i));
+    });
+
+    function useHint() {
+      if (hintCount.value >= 2) return;
+      hintCount.value++;
+      hintUsedCount.value++;
+      // 地図エリア下部に通知
+      if (mapWrapEl.value) {
+        const old = mapWrapEl.value.querySelector('.hint-notice');
+        if (old) old.remove();
+        const el = document.createElement('div');
+        el.className = 'hint-notice';
+        el.textContent = 'かくとくけいけんちがへります';
+        mapWrapEl.value.appendChild(el);
+        setTimeout(() => el.remove(), 2100);
+      }
+    }
+
+    function spawnParticles(name, yomi) {
+      if (!ptclEl.value) return;
+      ptclEl.value.innerHTML = '';
+      ptclTimers.forEach(clearTimeout);
+      ptclTimers = [];
+      const COUNT = 30;
+      for (let i = 0; i < COUNT; i++) {
+        ptclTimers.push(setTimeout(() => {
+          if (!ptclEl.value) return;
+          const el  = document.createElement('div');
+          el.className = 'wrong-particle';
+          el.textContent = i % 2 === 0 ? name : yomi;
+          const px  = 4  + Math.random() * 240;
+          const py  = 10 + Math.random() * 310;
+          const tx  = (Math.random() - 0.5) * 80;
+          const ty  = -25 - Math.random() * 60;
+          const dur = 0.75 + Math.random() * 0.8;
+          const rot = (Math.random() - 0.5) * 40;
+          const sz  = 8 + Math.random() * 10;
+          const op  = 0.45 + Math.random() * 0.45;
+          el.style.cssText = `left:${px}px;top:${py}px;font-size:${sz}px;--tx:${tx}px;--ty:${ty}px;--rot:${rot}deg;--dur:${dur}s;opacity:${op};`;
+          ptclEl.value.appendChild(el);
+          setTimeout(() => el.remove(), dur * 1000 + 100);
+        }, i * 60));
+      }
+    }
+
+    function triggerWrongEffect(prefName, prefYomi) {
+      // リセット
+      wrongFlash.value  = false;
+      wrongStamp.value  = false;
+      wrongBanner.value = false;
+      if (ptclEl.value) ptclEl.value.innerHTML = '';
+      ptclTimers.forEach(clearTimeout);
+      ptclTimers = [];
+
+      nextTick(() => {
+        // ① フラッシュ
+        wrongFlash.value = true;
+        setTimeout(() => { wrongFlash.value = false; }, 400);
+
+        // ② スタンプ
+        wrongStamp.value = true;
+
+        // ③ スタンプ消去 → パーティクル + ズーム + バナー (0.55s後)
+        ptclTimers.push(setTimeout(() => {
+          wrongStamp.value = false;
+
+          // ズーム: まず全国表示に即リセット → バナー表示 → zoomed=true でゆっくりズームイン
+          // (zoomedViewBox が wrongBanner を見てバナー考慮済み中心を返す)
+          zoomed.value = false;
+          panX.value = 0; panY.value = 0; zoomScale.value = 1;
+          animateViewBox({ x: 0, y: 0, w: 700, h: 740 }, true);
+
+          // バナー（zoomedViewBox の計算に影響するので zoomed=true より先に立てる）
+          wrongBanner.value = true;
+
+          setTimeout(() => { zoomed.value = true; }, 80);
+
+          // パーティクル
+          spawnParticles(prefName, prefYomi);
+        }, 550));
+      });
+    }
 
     return {
       mainlandPrefs, okinawaPrefs, LEVELS, XP_THRESHOLD,
@@ -1389,6 +1676,8 @@ createApp({
       pathClass, capitalPos, nextQuestion, checkAnswer,
       quizMode, choices, pickedChoiceId, pickChoice, choiceClass, setMode,
       nextLvNote,
+      wrongFlash, wrongStamp, wrongBanner, wrongRegion, ptclEl, mapWrapEl,
+      hintCount, visibleChoices, useHint,
     };
   }
 }).mount('#app');
